@@ -1,0 +1,161 @@
+<br> 
+<center>
+## Visual Analytics for Policy and Management: Exercise 4
+
+### Bivariate Case 
+
+### by Maria Zepeda Flores
+</center>
+<center><img src="http://i.imgur.com/sSaOozN.png" width="500"></center>
+
+Data to be used:
+
+```{r collect}
+link="https://github.com/EvansDataScience/data/raw/master/crime.RData"
+load(file = url(link))
+```
+
+
+```{r plotTable_gg, echo=FALSE, results = 'hide'}
+library(ggplot2)                           
+```
+
+```{r str, echo=FALSE, results = 'hide'}
+str(crime,width = 70,strict.width='cut')
+```
+
+
+```{r, echo=FALSE, results = 'hide'}
+crimeYear=crime[crime$DaysToReport>=365,]
+crimeY2000=crime[(crime$DaysToReport>=365) & (crime$year>=2000),]
+crimeY2000$YearsToReport=crimeY2000$DaysToReport/365
+crimeYearGG=crimeY2000[complete.cases(crimeY2000$YearsToReport),]
+```
+
+```{r anova, echo=FALSE, results = 'hide'}
+#making a subset:
+anovaData=crimeY2000[crimeY2000$YearsToReport>=5,]
+
+#checking the mean per factor value:
+tapply(anovaData$YearsToReport, anovaData$Precinct, mean,na.rm=T)
+```
+
+```{r CI, echo=FALSE, results = 'hide'}
+library(Rmisc)
+
+group.CI(YearsToReport ~ Precinct, 
+         data=anovaData, 
+         ci = 0.95)
+```
+
+Plot 1: 
+
+```{r plotCI, echo=FALSE, results = 'hide'}
+anovaData=anovaData[complete.cases(anovaData),]
+
+# introducing ggpubr
+library(ggpubr)
+ggline(data=anovaData,x = "Precinct", y = "YearsToReport",add = 'mean_ci',
+       error.plot = "pointrange") + scale_y_continuous(breaks=seq(7,10,0.5)) + labs(title="Years to Report by Precinct", x="Precinct", y="Years to Report", caption = "Source: Seattle Open Data Portal")+
+  theme_classic() + theme(legend.position='none', plot.title = element_text(family = "Trebuchet MS", color="#666666", face="bold", size=20, hjust=.5), plot.subtitle = element_text(size = 14, hjust = 0.5),
+)
+
+```
+```{r testAnova, echo=FALSE, results = 'hide'}
+# Compute the analysis of variance
+res.aov <- aov(YearsToReport ~ Precinct, data = anovaData)
+
+# Summary of the analysis
+summary(res.aov)[[1]]$Pr[1]
+```
+
+```{r nonparam, echo=FALSE, results = 'hide'}
+# non parametric
+kruskal.test(YearsToReport ~ Precinct, data = anovaData)
+```
+
+
+
+
+
+
+```{r aggregate,echo=FALSE, results = 'hide'}
+# 1. MEAN of days it takes to report a crime by neighborhood
+daysByNeigh=tapply(crime$DaysToReport, crime$Neighborhood, mean,na.rm=T)
+
+# you have:
+head(daysByNeigh)
+```
+
+```{r,echo=FALSE, results = 'hide'}
+# 2. PROPORTION of crimes by neighborhood
+crimesByNeigh=tapply(crime$crimecat, crime$Neighborhood, length)%>%      
+                     prop.table()%>%
+                     "*"(100)%>% 
+                     round(2) 
+head(crimesByNeigh)
+```
+
+```{r, echo=FALSE, results = 'hide'}
+library(tibble)
+as.data.frame(daysByNeigh)%>%rownames_to_column()
+```
+
+
+```{r TOdataFrame, echo=FALSE, results = 'hide'}
+crimesByNeigh=as.data.frame(crimesByNeigh)%>%rownames_to_column()
+daysByNeigh=as.data.frame(daysByNeigh)%>%rownames_to_column()
+num_num=merge(daysByNeigh,crimesByNeigh)
+head(num_num)
+```
+
+
+
+```{r ggscatter,echo=FALSE, results = 'hide'}
+library(ggrepel)
+```
+
+Plot 2: 
+
+```{r scatterSEARCH, echo=FALSE, results = 'hide'}
+base = ggplot(num_num, aes(daysByNeigh,crimesByNeigh,label=rowname)) 
+base +  geom_point() + geom_text_repel(aes(label=ifelse(num_num$rowname=='NORTHGATE',
+                                                        num_num$rowname, ""))) + labs(title="Neighborhoods with at least 5% of crimes", x=" Days by Neighborhood", y="Crimes by Neighborhood", caption = "Source: Seattle Open Data Portal")+
+  theme_classic() + theme(legend.position='none', plot.title = element_text(family = "Trebuchet MS", color="#666666", face="bold", size=20, hjust=.5), plot.subtitle = element_text(size = 14, hjust = 0.5),
+)
+```
+
+Plot 3: 
+
+
+```{r hexbins, echo=FALSE, results = 'hide'}
+base = ggplot(num_num, aes(daysByNeigh,crimesByNeigh)) 
+scatp1 = base +  geom_hex(bins = 10)
+scatp2= scatp1 + geom_text_repel(aes(label=ifelse(crimesByNeigh>=5,
+                                                  num_num$rowname,
+                                                  ""))) 
+scatp2 + scale_fill_distiller(palette ="Greys",direction=1, name="") + labs(title="Crime Rates and Reporting Times by Neighborhood", x=" Days to Report", y="Proportion of Crimes", caption = "Source: Seattle Open Data Portal")+
+  theme_classic() + theme(plot.title = element_text(family = "Trebuchet MS", color="#666666", face="bold", size=20, hjust=.5), plot.subtitle = element_text(size = 14, hjust = 0.5),
+)
+```
+
+Final Plot: 
+
+```{r density, echo=FALSE, results = 'hide'}
+base = ggplot(num_num, aes(daysByNeigh,crimesByNeigh)) 
+scatp1 = base +  stat_density_2d(aes(fill = ..density..), 
+                                 geom = "raster", contour = FALSE)
+scatp2 = scatp1 + geom_text_repel(aes(label=ifelse(crimesByNeigh>=5,
+                                               num_num$rowname, "")))
+scatp3 = scatp2 +  theme(legend.position='none') 
+scatp4 = scatp3 + scale_fill_distiller(palette="Greys", direction=1) 
+scatp5 = scatp4 + scale_x_continuous(expand = c(0, 0)) + 
+         scale_y_continuous(expand = c(0, 0)) 
+scatp5 + labs(title="Crime Rates and Reporting Times by Neighborhood", x=" Days to Report", y="Proportion of Crimes", caption = "Source: Seattle Open Data Portal")+
+  theme_classic() + theme(legend.position='none', plot.title = element_text(family = "Trebuchet MS", color="#666666", face="bold", size=20, hjust=.5), plot.subtitle = element_text(size = 14, hjust = 0.5),
+)
+```
+
+
+
+
