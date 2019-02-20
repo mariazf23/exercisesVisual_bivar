@@ -1,0 +1,126 @@
+<br> 
+<center>
+## Visual Analytics for Policy and Management: Exercise 3
+
+### Bivariate Case 
+
+### by Maria Zepeda Flores
+</center>
+<center><img src="http://i.imgur.com/sSaOozN.png" width="500"></center>
+
+Data to be used:
+
+```{r collect}
+link="https://github.com/EvansDataScience/data/raw/master/crime.RData"
+load(file = url(link))
+```
+
+
+```{r plotTable_gg, echo=FALSE, results = 'hide'}
+library(ggplot2)                           
+```
+
+```{r str, echo=FALSE, results = 'hide'}
+str(crime,width = 70,strict.width='cut')
+```
+
+```{r convertYear, echo=FALSE, results = 'hide'}
+crimeYear=crime[crime$DaysToReport>=365,]
+crimeY2000=crime[(crime$DaysToReport>=365) & (crime$year>=2000),]
+crimeY2000$YearsToReport=crimeY2000$DaysToReport/365
+crimeYearGG=crimeY2000[complete.cases(crimeY2000$YearsToReport),]
+```
+
+Plot 1: 
+
+```{r, echo=FALSE, results = 'hide'}
+crimeYearGG=crimeY2000[complete.cases(crimeY2000$YearsToReport),]
+
+base = ggplot(crimeYearGG,aes(x=factor(year), y=YearsToReport)) 
+box  = base + geom_boxplot()
+box + labs(title="Are Crimes Being Reported Sooner Over Time?", x="", y="Years to Report", caption = "Source: Seattle Open Data Portal")+
+  theme_classic() + theme(plot.title = element_text(family = "Trebuchet MS", color="#666666", face="bold", size=20, hjust=.5), plot.subtitle = element_text(size = 14, hjust = 0.5),
+)
+```
+
+Plot 2: 
+
+```{r, echo=FALSE, results = 'hide'}
+# Change color of lines:
+base  = ggplot(crimeYearGG,aes(x=factor(year), y=YearsToReport))
+mins = base + stat_summary(fun.y=min, # function for 'y' is min()
+                           geom="line",
+                           show.legend = T,size=1,
+                           aes(group=1,col='Min'))
+minsMaxs= mins + stat_summary(fun.y=max,
+                              geom="line",
+                              linetype='dashed',
+                              size=1,show.legend = F,
+                              aes(group=1,col='Max'))
+minsMaxsMd= minsMaxs + stat_summary(fun.y=median,
+                                    geom="line",size=2,
+                                    aes(group=1,col='Median'))
+all1=minsMaxsMd + scale_colour_manual(name="",
+                                      values=c("blue", "black","red")
+                                      )
+all1 + labs(title="Are Crimes Being Reported Sooner Over Time?", x="", y="Years to Report", caption = "Source: Seattle Open Data Portal")+
+  theme_classic() + theme(plot.title = element_text(family = "Trebuchet MS", color="#666666", face="bold", size=20, hjust=.5), plot.subtitle = element_text(size = 12, hjust = 0.5),
+)
+```
+
+
+```{r crimeWeek, echo=FALSE, results = 'hide'}
+# data preparation:
+
+crimeWeek=crime[(crime$DaysToReport<365) & (crime$year>=2000),]
+
+crimeWeek$WeeksToReport=crimeWeek$DaysToReport/7
+
+crimeYearGG2=crimeWeek[complete.cases(crimeWeek$WeeksToReport) &complete.cases(crimeWeek$crimecat),]
+
+```
+
+
+Plot 3: 
+
+```{r byCrime, echo=FALSE, results = 'hide'}
+base= ggplot(crimeYearGG,
+             aes(x = reorder(crimecat, YearsToReport, FUN = max), # reorder!
+                 y=YearsToReport)) 
+mins = base + stat_summary(fun.y=min,size=1,
+                           geom="line", linetype='dashed',show.legend = T,
+                           aes(group=1,col='Min'))
+minsMaxs= mins + stat_summary(fun.y=max,
+                              geom="line",size=1,show.legend = F,
+                              aes(group=1,col='Max'))
+minsMaxsMd= minsMaxs + stat_summary(fun.y=median, size=2,
+                                    geom="line",
+                                    aes(group=1,col='Median'))
+all3=minsMaxsMd + scale_colour_manual(name="",
+                                      values=c("blue", "black","red"))
+all3 + coord_flip() + coord_flip() + labs(title="What Crimes Take Longest to Report?", x="", y="Years to Report", caption = "Source: Seattle Open Data Portal")+
+  theme_classic() + theme(plot.title = element_text(family = "Trebuchet MS", color="#666666", face="bold", size=24, hjust=.5), plot.subtitle = element_text(size = 12, hjust = 0.5),
+)
+```
+
+Final Plot:
+
+```{r byCrime2}
+base = ggplot(crimeYearGG2,
+              aes(x = reorder(crimecat, WeeksToReport, FUN = max),
+                  y=WeeksToReport)) 
+mins = base + stat_summary(fun.y=min,size=1,
+                           geom="line", linetype='dashed',show.legend = F,
+                           aes(group=1,col='Min'))
+minsMaxs= mins + stat_summary(fun.y=max,
+                              geom="line",size=1,show.legend = F,
+                              aes(group=1,col='Max'))
+minsMaxsMd= minsMaxs + stat_summary(fun.y=median,size=2,
+                                    geom="line",
+                                    aes(group=2,col='Median'))
+all3=minsMaxsMd + scale_colour_manual(name="",
+                                      values=c("blue", "black","red"))
+all3+coord_flip() + labs(title="Crimes Reported Within a Year", subtitle="What Crimes Take Longest to Report?", x="", y="Weeks to Report", caption = "Source: Seattle Open Data Portal")+
+  theme_classic() + theme(plot.title = element_text(family = "Trebuchet MS", color="#666666", face="bold", size=24, hjust=.5), plot.subtitle = element_text(size = 14, hjust = 0.5),
+)
+```
