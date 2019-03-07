@@ -4,9 +4,9 @@
 
 
 
-## Visual Analytics for Policy and Management: Exercise 5
+## Visual Analytics for Policy and Management
 
-### Univariate Case 
+### Bivariate Case 
 
 ### by Maria Zepeda Flores
 </center>
@@ -74,6 +74,7 @@ head(df.T)
 library(ggplot2)                           
 ```
 
+## Exercise 1:
 
 ```{r flip_facet, echo=FALSE, results = 'hide'}
 df.C=as.data.frame(CrimeCol)
@@ -85,7 +86,7 @@ bars1 = base + geom_bar( stat = "identity" )
 bars2 = bars1 + facet_wrap( ~ Daytime ,nrow = 1) 
 ```
 
-Plot 1:
+#### Plot 1:
 
 ```{r orderFacet, echo=FALSE, results = 'hide'}
 base  = ggplot(df.C, aes(x = reorder(Crime, Percent), y = Percent ) ) 
@@ -94,7 +95,7 @@ bars2 = bars1 + facet_wrap( ~ Daytime ,nrow = 1)
 bars2 + coord_flip() + theme(axis.text.y = element_text(size=4,angle = 45)) 
 ```
 
-Final Plot:
+#### Final Plot:
 
 ```{r}
 base  = ggplot(df.T, aes(x = Crime, y = Percent ) ) 
@@ -107,3 +108,203 @@ lollipop3 = lollipop2 + facet_wrap( ~ Daytime ,nrow = 1)
 lollipop4 = lollipop3 + coord_flip() + theme_minimal() 
 lollipop4 + labs(title="Crime Rates by Time of Day")
 ```
+## Exercise 2
+
+
+```{r table, echo=FALSE, results = 'hide'}
+(CrimeTotal=table(crime$crimecat,crime$Occurred.DayTime))
+```
+
+
+```{r table_rel_PIPES,echo=FALSE, results = 'hide'}
+# using "pipes" to help readability:
+library(magrittr)
+(CrimeTotal=table(crime$crimecat,crime$Occurred.DayTime)%>% #create table and then...
+        prop.table() %>% #compute proportion and then...
+        "*"(100)%>% # multiply by 100 and then...
+        round(2) #...round to to decimals
+        )
+```
+
+
+```{r table_byCol,echo=FALSE, results = 'hide'}
+CrimeCol=table(crime$crimecat,crime$Occurred.DayTime)%>%
+         prop.table(margin = 2)%>%   # 2 is % by column
+         "*"(100)%>%
+         round(3)
+
+CrimeCol
+```
+
+
+```{r convertToDFgg,echo=FALSE, results = 'hide'}
+df.T=as.data.frame(CrimeTotal) # table of proportion based on total
+# YOU GET:
+head(df.T)
+```
+
+```{r, echo=FALSE, results = 'hide'}
+names(df.T)=c('Crime','Daytime','Percent') #renaming
+head(df.T)
+```
+
+
+```{r plotTable_gg, echo=FALSE, results = 'hide'}
+library(ggplot2)                           
+```
+
+
+```{r flip_facet, echo=FALSE, results = 'hide'}
+df.C=as.data.frame(CrimeCol)
+colnames(df.C)=c('Crime','Daytime','Percent')
+#####
+
+base  = ggplot(df.C, aes(x = Crime, y = Percent ) ) 
+bars1 = base + geom_bar( stat = "identity" )
+bars2 = bars1 + facet_wrap( ~ Daytime ,nrow = 1) 
+
+```
+
+
+```{r orderFacet, echo=FALSE, results = 'hide'}
+base  = ggplot(df.C, aes(x = reorder(Crime, Percent), y = Percent ) ) 
+bars1 = base + geom_bar( stat = "identity" )
+bars2 = bars1 + facet_wrap( ~ Daytime ,nrow = 1) 
+
+```
+
+
+```{r, echo=FALSE}
+base  = ggplot(df.T, aes(x = Crime, y = Percent ) ) 
+lollipop1 = base + geom_segment(aes(y = 0, 
+                                   x = reorder(Crime, Percent), 
+                                   yend = Percent, 
+                                   xend = Crime), color = "gray50") 
+lollipop2 = lollipop1 + geom_point(color = "navyblue")
+lollipop3 = lollipop2 + facet_wrap( ~ Daytime ,nrow = 1) 
+lollipop4 = lollipop3 + coord_flip() + theme_minimal() 
+```
+
+#### Final Plot:
+
+```{r heatDescending}
+# heatplot
+base  = ggplot(df.C, aes(x = Daytime, y = reorder(Crime, -Percent), fill = Percent)) 
+heat1 = base +  geom_tile() 
+heat2 = heat1 +scale_fill_gradient(low = "yellow", 
+                                   high = "purple")
+heat3 = heat2 + theme_classic() 
+
+heat4 = heat3 + theme(axis.text.x = element_text(angle = 90, vjust = 0.6), 
+                      legend.title = element_blank(), #no title for legend
+                      legend.position="top", 
+                      legend.direction="horizontal",
+                      legend.key.width=unit(1, "cm"),
+                      legend.key.height=unit(1, "cm")) 
+
+heat4 + labs(y="Crime")
+```
+
+## Exercise 3
+
+```{r convertYear, echo=FALSE, results = 'hide'}
+crimeYear=crime[crime$DaysToReport>=365,]
+crimeY2000=crime[(crime$DaysToReport>=365) & (crime$year>=2000),]
+crimeY2000$YearsToReport=crimeY2000$DaysToReport/365
+crimeYearGG=crimeY2000[complete.cases(crimeY2000$YearsToReport),]
+```
+
+#### Plot 1: 
+
+```{r, echo=FALSE, results = 'hide'}
+crimeYearGG=crimeY2000[complete.cases(crimeY2000$YearsToReport),]
+
+base = ggplot(crimeYearGG,aes(x=factor(year), y=YearsToReport)) 
+box  = base + geom_boxplot()
+box + labs(title="Are Crimes Being Reported Sooner Over Time?", x="", y="Years to Report", caption = "Source: Seattle Open Data Portal")+
+  theme_classic() + theme(plot.title = element_text(family = "Trebuchet MS", color="#666666", face="bold", size=20, hjust=.5), plot.subtitle = element_text(size = 14, hjust = 0.5),
+)
+```
+
+#### Plot 2: 
+
+```{r, echo=FALSE, results = 'hide'}
+# Change color of lines:
+base  = ggplot(crimeYearGG,aes(x=factor(year), y=YearsToReport))
+mins = base + stat_summary(fun.y=min, # function for 'y' is min()
+                           geom="line",
+                           show.legend = T,size=1,
+                           aes(group=1,col='Min'))
+minsMaxs= mins + stat_summary(fun.y=max,
+                              geom="line",
+                              linetype='dashed',
+                              size=1,show.legend = F,
+                              aes(group=1,col='Max'))
+minsMaxsMd= minsMaxs + stat_summary(fun.y=median,
+                                    geom="line",size=2,
+                                    aes(group=1,col='Median'))
+all1=minsMaxsMd + scale_colour_manual(name="",
+                                      values=c("blue", "black","red")
+                                      )
+all1 + labs(title="Are Crimes Being Reported Sooner Over Time?", x="", y="Years to Report", caption = "Source: Seattle Open Data Portal")+
+  theme_classic() + theme(plot.title = element_text(family = "Trebuchet MS", color="#666666", face="bold", size=20, hjust=.5), plot.subtitle = element_text(size = 12, hjust = 0.5),
+)
+```
+
+
+```{r crimeWeek, echo=FALSE, results = 'hide'}
+# data preparation:
+
+crimeWeek=crime[(crime$DaysToReport<365) & (crime$year>=2000),]
+
+crimeWeek$WeeksToReport=crimeWeek$DaysToReport/7
+
+crimeYearGG2=crimeWeek[complete.cases(crimeWeek$WeeksToReport) &complete.cases(crimeWeek$crimecat),]
+
+```
+
+
+#### Plot 3: 
+
+```{r byCrime, echo=FALSE, results = 'hide'}
+base= ggplot(crimeYearGG,
+             aes(x = reorder(crimecat, YearsToReport, FUN = max), # reorder!
+                 y=YearsToReport)) 
+mins = base + stat_summary(fun.y=min,size=1,
+                           geom="line", linetype='dashed',show.legend = T,
+                           aes(group=1,col='Min'))
+minsMaxs= mins + stat_summary(fun.y=max,
+                              geom="line",size=1,show.legend = F,
+                              aes(group=1,col='Max'))
+minsMaxsMd= minsMaxs + stat_summary(fun.y=median, size=2,
+                                    geom="line",
+                                    aes(group=1,col='Median'))
+all3=minsMaxsMd + scale_colour_manual(name="",
+                                      values=c("blue", "black","red"))
+all3 + coord_flip() + coord_flip() + labs(title="What Crimes Take Longest to Report?", x="", y="Years to Report", caption = "Source: Seattle Open Data Portal")+
+  theme_classic() + theme(plot.title = element_text(family = "Trebuchet MS", color="#666666", face="bold", size=24, hjust=.5), plot.subtitle = element_text(size = 12, hjust = 0.5),
+)
+```
+
+#### Final Plot:
+
+```{r byCrime2}
+base = ggplot(crimeYearGG2,
+              aes(x = reorder(crimecat, WeeksToReport, FUN = max),
+                  y=WeeksToReport)) 
+mins = base + stat_summary(fun.y=min,size=1,
+                           geom="line", linetype='dashed',show.legend = F,
+                           aes(group=1,col='Min'))
+minsMaxs= mins + stat_summary(fun.y=max,
+                              geom="line",size=1,show.legend = F,
+                              aes(group=1,col='Max'))
+minsMaxsMd= minsMaxs + stat_summary(fun.y=median,size=2,
+                                    geom="line",
+                                    aes(group=2,col='Median'))
+all3=minsMaxsMd + scale_colour_manual(name="",
+                                      values=c("blue", "black","red"))
+all3+coord_flip() + labs(title="Crimes Reported Within a Year", subtitle="What Crimes Take Longest to Report?", x="", y="Weeks to Report", caption = "Source: Seattle Open Data Portal")+
+  theme_classic() + theme(plot.title = element_text(family = "Trebuchet MS", color="#666666", face="bold", size=24, hjust=.5), plot.subtitle = element_text(size = 14, hjust = 0.5),
+)
+```
+
